@@ -16,25 +16,48 @@ let replaceWithCode char =
     | Some(code, _) -> code
     | None -> char
 
-let removeAdjacentCodes (str : char list) =
-  seq { 
-    if str.Length > 0 then yield str.[0]
-    for i=1 to str.Length-1 do
-      if str.[i] <> str.[i-1] then
-        yield str.[i] 
-  } |> Seq.toList
+let removeDups (input: char list) =
+  let rec skipToNextNotEqual (char: char) (input: char list) =
+    match input with
+      | x :: rest when x = char -> skipToNextNotEqual char rest
+      | x  -> x
+  let rec removeDupsRec (acc: char list) (input: char list) =
+    match input with
+      | x::y::rest when x = y -> removeDupsRec (x::acc) (skipToNextNotEqual x rest)
+      | x::y::z::rest when x = z && (y = 'h' || y = 'w') -> removeDupsRec (x::acc) rest
+      | x::rest -> removeDupsRec (x::acc) rest
+      | [] -> acc
+  removeDupsRec [] input |> List.rev
 
+let removeAllDups input =
+  let rec passUntilNoChange (firstPass: char list) =
+    if firstPass.Length <= 3 then
+      firstPass
+    else
+      let secondPass = removeDups firstPass
+      if firstPass = secondPass then
+        firstPass
+      else
+        passUntilNoChange secondPass
+  passUntilNoChange <| removeDups input
+  
 let removeNonSoundexChars str =
   str |> List.filter (fun c -> not <| List.exists (fun e -> c = e) ['a'; 'e'; 'i'; 'o'; 'u'; 'y'; 'h'; 'w'])
 
-let soundex (input : string) =
+let padOrChop (str: char list) =
+  if str.Length >= 3 then
+    Seq.take 3 str |> Array.ofSeq
+  else
+    (Array.append (Array.create 2 '0') (Array.ofList str)).[0..2]
+    
+let soundex (input: string) =
   let firstC = input.[0]
-  let name = input.[1..]
-  let name = List.map replaceWithCode (Seq.toList name)
-  let name = removeAdjacentCodes name
-  // remove adjacent codes
-  // remove same codes separated by h or w
-  let name = removeNonSoundexChars name
+  let name = 
+    input.[1..] |> Seq.toList
+    |> List.map replaceWithCode
+    |> removeAllDups
+    |> removeNonSoundexChars
+    |> padOrChop
 
   firstC, name
 
