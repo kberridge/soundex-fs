@@ -16,13 +16,22 @@ let replaceWithCode char =
     | Some(code, _) -> code
     | None -> char
 
+let removeAdjacentCodes (str : char list) =
+  seq { 
+    if str.Length > 0 then yield str.[0]
+    for i=1 to str.Length-1 do
+      if str.[i] <> str.[i-1] then
+        yield str.[i] 
+  } |> Seq.toList
+
 let removeNonSoundexChars str =
-  str |> Seq.filter (fun c -> not <| List.exists (fun e -> c = e) ['a'; 'e'; 'i'; 'o'; 'u'; 'y'; 'h'; 'w'])
+  str |> List.filter (fun c -> not <| List.exists (fun e -> c = e) ['a'; 'e'; 'i'; 'o'; 'u'; 'y'; 'h'; 'w'])
 
 let soundex (input : string) =
   let firstC = input.[0]
   let name = input.[1..]
-  let name = Seq.map replaceWithCode name
+  let name = List.map replaceWithCode (Seq.toList name)
+  let name = removeAdjacentCodes name
   // remove adjacent codes
   // remove same codes separated by h or w
   let name = removeNonSoundexChars name
