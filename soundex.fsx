@@ -70,6 +70,10 @@ let tests = [
   "Ashcroft", "A261";
   "Tymczak", "T522";
   "Pfister", "P236";
+  "Berrwridge", "B632";
+  "Rhrumble", "R514";
+  "Berrirdge", "B663";
+  "Berhrrhrrnnn", "B650"
 ]
 
 let test (name, expected) =
