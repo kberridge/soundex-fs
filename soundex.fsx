@@ -20,7 +20,7 @@ let removeDups (input: char list) =
   let rec skipToNextNotEqual (char: char) (input: char list) =
     match input with
       | x :: rest when x = char -> skipToNextNotEqual char rest
-      | x  -> x
+      | x -> x
   let rec removeDupsRec (acc: char list) (input: char list) =
     match input with
       | x::y::rest when x = y -> removeDupsRec (x::acc) (skipToNextNotEqual x rest)
