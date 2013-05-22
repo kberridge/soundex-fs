@@ -48,19 +48,41 @@ let padOrChop (str: char list) =
   if str.Length >= 3 then
     Seq.take 3 str |> Array.ofSeq
   else
-    (Array.append (Array.create 2 '0') (Array.ofList str)).[0..2]
+    (Array.append (Array.ofList str) (Array.create 2 '0')).[0..2]
     
 let soundex (input: string) =
-  let firstC = input.[0]
+  let firstC = System.Char.ToUpper(input.[0])
   let name = 
-    input.[1..] |> Seq.toList
+    input.ToLower() |> Seq.toList
     |> List.map replaceWithCode
     |> removeAllDups
+    |> List.tail
     |> removeNonSoundexChars
     |> padOrChop
 
-  firstC, name
+  new System.String(Array.append [|firstC|] name)
 
-let input = "Ashcraft"
-let (firstC, name) = soundex input
-printfn "%c, %A" firstC name
+let tests = [
+  "Robert", "R163";
+  "Rupert", "R163";
+  "Rubin", "R150";
+  "Ashcraft", "A261";
+  "Ashcroft", "A261";
+  "Tymczak", "T522";
+  "Pfister", "P236";
+]
+
+let test (name, expected) =
+  let actual = soundex name
+  if actual = expected then
+    None
+  else
+    Some(sprintf "%s expected %s got %s" name expected actual)
+
+List.map test tests
+  |> List.iter (fun t -> 
+      if Option.isSome t then
+        printfn "%s" t.Value
+      else
+        ()
+    )
