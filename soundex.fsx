@@ -16,51 +16,48 @@ let replaceWithCode char =
     | Some(code, _) -> code
     | None -> char
 
-let removeDups (input: char list) =
-  let rec skipToNextNotEqual (char: char) (input: char list) =
-    match input with
-      | x :: rest when x = char -> skipToNextNotEqual char rest
-      | x -> x
-  let rec removeDupsRec (acc: char list) (input: char list) =
-    match input with
-      | x::y::rest when x = y -> removeDupsRec (x::acc) (skipToNextNotEqual x rest)
-      | x::y::z::rest when x = z && (y = 'h' || y = 'w') -> removeDupsRec (x::acc) rest
-      | x::rest -> removeDupsRec (x::acc) rest
-      | [] -> acc
-  removeDupsRec [] input |> List.rev
-
-let removeAllDups input =
-  let rec passUntilNoChange (firstPass: char list) =
-    if firstPass.Length <= 3 then
-      firstPass
-    else
-      let secondPass = removeDups firstPass
-      if firstPass = secondPass then
-        firstPass
-      else
-        passUntilNoChange secondPass
-  passUntilNoChange <| removeDups input
-  
-let removeNonSoundexChars str =
-  str |> List.filter (fun c -> not <| List.exists (fun e -> c = e) ['a'; 'e'; 'i'; 'o'; 'u'; 'y'; 'h'; 'w'])
-
 let padOrChop (str: char list) =
   if str.Length >= 3 then
     Seq.take 3 str |> Array.ofSeq
   else
     (Array.append (Array.ofList str) (Array.create 2 '0')).[0..2]
+
+let removeDuplicates (lastChar, currentList) encodedChar =
+  let lastListChar = List.head currentList
+  match encodedChar with
+    | x when x = lastChar && (lastListChar = 'h' || lastListChar = 'w') -> lastChar, (List.tail currentList)
+    | x when x = lastChar -> lastChar, currentList
+    | x when x = 'h' || x = 'w' -> lastChar, x::currentList
+    | 'a' | 'e' | 'i' | 'o' | 'u' | 'y' -> encodedChar, currentList
+    | x when lastListChar = 'h' || lastListChar = 'w' -> encodedChar, x::(List.tail currentList)
+    | x -> encodedChar, x::currentList
+
+let findFirstCompleteList (scanSeq: seq<char * char list>)=
+  let rec inner (lastChar, (currentList: char list)) (e: System.Collections.Generic.IEnumerator<_*_>) =
+    let currentListHead = List.head currentList
+    if currentList.Length >= 4 && (currentListHead <> 'h' || currentListHead <> 'w') then
+      currentList
+    else
+      if e.MoveNext() then
+        inner e.Current e
+      else
+        currentList
+  let e = scanSeq.GetEnumerator()
+  e.MoveNext() |> ignore
+  inner (Seq.head scanSeq) e
+    
     
 let soundex (input: string) =
   let firstC = System.Char.ToUpper(input.[0])
-  let name = 
-    input.ToLower() |> Seq.toList
-    |> List.map replaceWithCode
-    |> removeAllDups
-    |> List.tail
-    |> removeNonSoundexChars
+  let encodedSeq = input.ToLower() |> Seq.map replaceWithCode
+  let firstChar = Seq.head encodedSeq
+  let result =
+    Seq.scan removeDuplicates (firstChar, [firstChar]) (Seq.skip 1 encodedSeq)
+    |> findFirstCompleteList
+    |> List.rev |> List.tail
     |> padOrChop
 
-  new System.String(Array.append [|firstC|] name)
+  new System.String(Array.append [|firstC|] result)
 
 let tests = [
   "Robert", "R163";
